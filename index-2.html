@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AnwaPlay</title>
+<style>
+:root{--bg:#07070f;--panel:#10101e;--line:#26264a;--neon:#00f0ff;--pink:#ff2bd6;--lime:#b6ff3b;--txt:#e8e8ff;--dim:#7a7aa8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Noto Sans Thai",sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.wrap{max-width:560px;margin:0 auto;padding:10px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+h1{margin:4px 2px 10px;font-size:20px;letter-spacing:3px;color:var(--neon);text-shadow:0 0 10px var(--neon)}
+h1 span{color:var(--pink);text-shadow:0 0 10px var(--pink)}
+.vid{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden}
+.vid iframe,.vid div{position:absolute;inset:0;width:100%;height:100%}
+.title{margin:10px 0 2px;font-size:15px;white-space:nowrap;overflow:hidden;color:var(--lime);text-shadow:0 0 8px #b6ff3b66}
+.title span{display:inline-block;padding-left:100%;animation:mq 14s linear infinite}
+@keyframes mq{to{transform:translateX(-100%)}}
+canvas{width:100%;height:56px;display:block;background:#05050c;border-radius:8px;margin:8px 0 2px}
+.note{font-size:11px;color:var(--dim)}
+.time{display:flex;justify-content:space-between;font-family:ui-monospace,monospace;color:var(--neon);font-size:14px;margin-top:6px}
+input[type=range]{width:100%;accent-color:var(--pink);height:28px;margin:0}
+.ctrl{display:flex;gap:8px;margin:6px 0}
+.ctrl button{flex:1;height:52px;font-size:20px}
+button{background:#17172e;color:var(--txt);border:1px solid var(--line);border-radius:12px;font-size:15px;cursor:pointer}
+button:active{transform:scale(.96)}
+button.on{color:var(--lime);border-color:var(--lime);box-shadow:0 0 8px #b6ff3b55}
+button.main{background:linear-gradient(135deg,var(--pink),#7a2bff);border:none;color:#fff;box-shadow:0 0 14px #ff2bd677}
+.vol{display:flex;align-items:center;gap:8px}
+.add{display:flex;gap:8px}
+.add input[type=text],textarea,.key{flex:1;min-width:0;background:#05050c;border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:12px;font-size:15px}
+.add button{padding:0 16px}
+.pl{max-height:300px;overflow:auto}
+.row{display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid #1a1a33}
+.row.cur{background:#1a1a36;border-radius:8px}
+.row .t{flex:1;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row.cur .t{color:var(--neon)}
+.row .n{color:var(--dim);width:22px;font-size:12px}
+.row .x{width:36px;height:36px;font-size:14px;flex:none}
+.hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px;color:var(--dim)}
+.hd button{padding:6px 10px;font-size:12px}
+details summary{cursor:pointer;color:var(--dim);font-size:13px}
+.res{margin-top:8px}
+.msg{font-size:12px;color:var(--pink);min-height:16px;margin-top:6px}
+.th{width:64px;height:48px;border-radius:6px;object-fit:cover;flex:none}
+.col{flex:1;min-width:0}
+.col .t{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch{font-size:11px;color:var(--dim)}
+.keybox{background:#05050c;border:1px dashed var(--pink);border-radius:10px;padding:10px;margin-top:8px;font-size:13px;line-height:1.6}
+.keybox ol{margin:6px 0 8px;padding-left:20px}
+.lnk{background:none;border:none;color:var(--dim);font-size:12px;text-decoration:underline;padding:6px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ANWA<span>PLAY</span></h1>
+
+  <div class="box">
+    <div class="vid"><div id="yt"></div></div>
+    <div class="title"><span id="ttl">วางลิงก์ YouTube ด้านล่างเพื่อเริ่ม</span></div>
+    <canvas id="viz" width="560" height="112"></canvas>
+    <div class="note">แท่งไฟเป็นภาพตกแต่ง ไม่ตอบสนองเสียงจริง (YouTube ไม่เปิดให้เข้าถึงสัญญาณเสียง)</div>
+    <div class="time"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+    <input type="range" id="seek" min="0" max="1000" value="0">
+    <div class="ctrl">
+      <button id="bShuf" title="สุ่ม">🔀</button>
+      <button id="bPrev">⏮</button>
+      <button id="bPlay" class="main">▶</button>
+      <button id="bNext">⏭</button>
+      <button id="bRep" title="วนซ้ำ">🔁</button>
+    </div>
+    <div class="vol">🔈<input type="range" id="vol" min="0" max="100" value="80">🔊</div>
+  </div>
+
+  <div class="box">
+    <div class="add">
+      <input type="text" id="url" placeholder="วางลิงก์วิดีโอหรือเพลย์ลิสต์ YouTube" inputmode="url">
+      <button id="bAdd" class="main">เพิ่ม</button>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="add" style="margin-top:10px">
+      <input type="text" id="q" placeholder="🔍 ค้นหาเพลงหรือศิลปิน" enterkeyhint="search">
+      <button id="bSearch" class="main">ค้นหา</button>
+    </div>
+    <div class="res" id="res"></div>
+    <div id="keyBox" class="keybox" style="display:none">
+      <b>ตั้งค่าครั้งเดียวเพื่อเปิดค้นหา (ฟรี)</b>
+      <ol>
+        <li>เข้า console.cloud.google.com แล้วสร้างโปรเจกต์</li>
+        <li>เปิดใช้ "YouTube Data API v3"</li>
+        <li>สร้าง Credentials แบบ API key แล้ววางด้านล่าง</li>
+      </ol>
+      <div class="add"><input type="text" id="key" placeholder="วาง API Key"><button id="bKeySave" class="main">บันทึก</button></div>
+    </div>
+    <button id="bKeyChg" class="lnk" style="display:none">เปลี่ยน/ลบ API Key</button>
+  </div>
+
+  <div class="box">
+    <div class="hd"><span id="cnt">เพลย์ลิสต์ (0)</span><button id="bClear">ล้างทั้งหมด</button></div>
+    <div class="pl" id="pl"></div>
+  </div>
+</div>
+
+<div id="importHost" style="position:fixed;left:-9999px;width:200px;height:200px"><div id="imp"></div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let list=LS.get('ap_list',[]),idx=LS.get('ap_idx',-1),shuffle=LS.get('ap_shuf',false),repeat=LS.get('ap_rep',0);
+let player,impPlayer,ready=false,playing=false,seeking=false,vizLevel=[],bars=40;
+const say=t=>{$('msg').textContent=t||''};
+const fmt=s=>{s=Math.max(0,Math.floor(s||0));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const save=()=>{LS.set('ap_list',list);LS.set('ap_idx',idx);LS.set('ap_shuf',shuffle);LS.set('ap_rep',repeat)};
+
+// ---- YouTube API ----
+const tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';document.head.appendChild(tag);
+window.onYouTubeIframeAPIReady=()=>{
+  player=new YT.Player('yt',{width:'100%',height:'100%',playerVars:{playsinline:1,rel:0,modestbranding:1},
+    events:{onReady:()=>{ready=true;player.setVolume(+$('vol').value);if(idx>=0&&list[idx])player.cueVideoById(list[idx].id);setTitle()},
+    onStateChange:onState,onError:onErr}});
+  impPlayer=new YT.Player('imp',{width:'200',height:'200',playerVars:{playsinline:1}});
+};
+function onState(e){
+  const S=YT.PlayerState;
+  playing=e.data===S.PLAYING;
+  $('bPlay').textContent=playing?'⏸':'▶';
+  if(e.data===S.ENDED)next(true);
+  if(playing){const d=player.getVideoData();if(d&&d.title&&list[idx]&&list[idx].title!==d.title){list[idx].title=d.title;save();render();setTitle()}}
+  mediaSession();
+}
+function onErr(e){
+  const web=/^https?:$/.test(location.protocol);
+  if(e&&e.data===153||!web){say('YouTube ไม่ยอมเล่นเมื่อเปิดไฟล์จากในเครื่อง (ข้อผิดพลาด 153) ต้องอัปโหลดขึ้นเว็บ https ก่อน');return}
+  say('วิดีโอนี้เล่นไม่ได้ (เจ้าของปิดการฝัง) ข้ามไปเพลงถัดไป');setTimeout(()=>next(true),1200)
+}
+
+// ---- Parse ----
+function parse(s){
+  s=s.trim();if(!s)return null;
+  let v=null,l=null;
+  try{
+    const u=new URL(s.startsWith('http')?s:'https://'+s);
+    l=u.searchParams.get('list');v=u.searchParams.get('v');
+    if(!v&&u.hostname.includes('youtu.be'))v=u.pathname.slice(1).split('/')[0];
+    if(!v){const m=u.pathname.match(/\/(shorts|embed|live)\/([\w-]{11})/);if(m)v=m[2]}
+  }catch(e){}
+  if(!v&&!l&&/^[\w-]{11}$/.test(s))v=s;
+  if(v&&/^[\w-]{11}$/.test(v))return{type:'video',id:v};
+  if(l)return{type:'list',id:l};
+  return null;
+}
+async function titleOf(id){
+  try{const r=await fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+id));
+    if(r.ok){const j=await r.json();return j.title}}catch(e){}
+  return id;
+}
+async function addVideo(id,title){
+  if(list.some(x=>x.id===id))return false;
+  list.push({id,title:title||id});save();render();
+  if(!title){const t=await titleOf(id);const it=list.find(x=>x.id===id);if(it){it.title=t;save();render();setTitle()}}
+  return true;
+}
+function importList(lid){
+  return new Promise(res=>{
+    if(!impPlayer||!impPlayer.cuePlaylist){res([]);return}
+    impPlayer.cuePlaylist({listType:'playlist',list:lid});
+    let n=0;const t=setInterval(()=>{
+      n++;let ids=[];try{ids=impPlayer.getPlaylist()||[]}catch(e){}
+      if(ids.length||n>30){clearInterval(t);res(ids)}
+    },300);
+  });
+}
+async function addFromText(text){
+  const lines=text.split(/\s+/).filter(Boolean);let added=0,fail=0;
+  for(const ln of lines){
+    const p=parse(ln);
+    if(!p){fail++;continue}
+    if(p.type==='video'){if(await addVideo(p.id))added++}
+    else{say('กำลังดึงเพลย์ลิสต์...');const ids=await importList(p.id);if(!ids.length)fail++;
+      for(const id of ids){if(await addVideo(id))added++}}
+  }
+  say(added?`เพิ่มแล้ว ${added} เพลง`+(fail?` (ลิงก์ที่ใช้ไม่ได้ ${fail})`:''):(fail?'ลิงก์ไม่ถูกต้องหรือเพลย์ลิสต์เป็นส่วนตัว':'มีเพลงนี้อยู่แล้ว'));
+  if(idx<0&&list.length){idx=0;save();loadCur(false)}
+}
+
+// ---- Playback ----
+function loadCur(auto){
+  if(!ready||idx<0||!list[idx])return;
+  auto?player.loadVideoById(list[idx].id):player.cueVideoById(list[idx].id);
+  setTitle();render();save();
+}
+function playIdx(i){idx=i;loadCur(true)}
+function next(auto){
+  if(!list.length)return;
+  if(auto&&repeat===2){player.seekTo(0);player.playVideo();return}
+  let n;
+  if(shuffle&&list.length>1){do{n=Math.floor(Math.random()*list.length)}while(n===idx)}
+  else{n=idx+1;if(n>=list.length){if(repeat===1||!auto)n=0;else{playing=false;return}}}
+  playIdx(n);
+}
+function prev(){
+  if(!list.length)return;
+  if(ready&&player.getCurrentTime()>3){player.seekTo(0);return}
+  playIdx(idx<=0?list.length-1:idx-1);
+}
+function setTitle(){const t=list[idx]?list[idx].title:'วางลิงก์ YouTube ด้านล่างเพื่อเริ่ม';$('ttl').textContent=t+'   ★   '+t}
+
+// ---- Controls ----
+$('bPlay').onclick=()=>{
+  if(!ready)return;
+  if(idx<0&&list.length){playIdx(0);return}
+  playing?player.pauseVideo():player.playVideo();
+};
+$('bNext').onclick=()=>next(false);
+$('bPrev').onclick=prev;
+$('bShuf').onclick=()=>{shuffle=!shuffle;save();paintBtn()};
+$('bRep').onclick=()=>{repeat=(repeat+1)%3;save();paintBtn()};
+function paintBtn(){
+  $('bShuf').classList.toggle('on',shuffle);
+  $('bRep').classList.toggle('on',repeat>0);
+  $('bRep').textContent=repeat===2?'🔂':'🔁';
+}
+$('vol').oninput=e=>{ready&&player.setVolume(+e.target.value)};
+$('seek').addEventListener('input',()=>{seeking=true;if(ready)$('cur').textContent=fmt($('seek').value/1000*player.getDuration())});
+$('seek').addEventListener('change',()=>{if(ready)player.seekTo($('seek').value/1000*player.getDuration(),true);seeking=false});
+$('bAdd').onclick=async()=>{const v=$('url').value;if(!v.trim())return;$('url').value='';await addFromText(v)};
+$('url').addEventListener('keydown',e=>{if(e.key==='Enter')$('bAdd').click()});
+$('bClear').onclick=()=>{if(!list.length||!confirm('ล้างเพลย์ลิสต์ทั้งหมด?'))return;list=[];idx=-1;save();render();ready&&player.stopVideo();setTitle()};
+
+setInterval(()=>{
+  if(!ready||!player.getDuration)return;
+  const d=player.getDuration()||0,c=player.getCurrentTime()||0;
+  $('dur').textContent=fmt(d);
+  if(!seeking){$('cur').textContent=fmt(c);$('seek').value=d?c/d*1000:0}
+},300);
+
+// ---- Playlist UI ----
+function render(){
+  $('cnt').textContent=`เพลย์ลิสต์ (${list.length})`;
+  const box=$('pl');box.innerHTML='';
+  list.forEach((it,i)=>{
+    const r=document.createElement('div');r.className='row'+(i===idx?' cur':'');
+    r.innerHTML='<span class="n"></span><span class="t"></span><button class="x">✕</button>';
+    r.children[0].textContent=i===idx&&playing?'▶':i+1;
+    r.children[1].textContent=it.title;
+    r.children[1].onclick=()=>playIdx(i);
+    r.children[2].onclick=()=>{list.splice(i,1);if(i<idx)idx--;else if(i===idx){idx=Math.min(idx,list.length-1);if(idx>=0)loadCur(playing)}save();render();setTitle()};
+    box.appendChild(r);
+  });
+}
+
+// ---- Search ----
+const DEFAULT_KEY='AIzaSyAMkV6NDuJHcSMd4Tq8ywV86UT18zmIIe4'; // ถ้าอยากฝัง API Key ไว้ในไฟล์ ใส่ตรงนี้
+let apiKey=LS.get('ap_key','')||DEFAULT_KEY;
+function paintKey(){$('keyBox').style.display=apiKey?'none':'block';$('bKeyChg').style.display=apiKey?'inline-block':'none'}
+$('bKeySave').onclick=()=>{const k=$('key').value.trim();if(!k)return;apiKey=k;LS.set('ap_key',k);$('key').value='';paintKey();$('res').textContent='บันทึกแล้ว พิมพ์ชื่อเพลงแล้วกดค้นหาได้เลย'};
+$('bKeyChg').onclick=()=>{apiKey='';LS.set('ap_key','');paintKey();$('res').textContent=''};
+const dec=t=>{const e=document.createElement('textarea');e.innerHTML=t;return e.value};
+function playNow(id,title){
+  let i=list.findIndex(x=>x.id===id);
+  if(i<0){list.push({id,title});i=list.length-1;save();render()}
+  playIdx(i);
+}
+async function doSearch(){
+  const q=$('q').value.trim(),box=$('res');
+  if(!q)return;
+  if(!apiKey){paintKey();box.textContent='ต้องใส่ API Key ก่อน (ทำครั้งเดียว)';return}
+  box.textContent='กำลังค้นหา...';
+  try{
+    const r=await fetch('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=15&q='+encodeURIComponent(q)+'&key='+encodeURIComponent(apiKey));
+    const j=await r.json();
+    if(!r.ok){
+      const m=(j.error&&j.error.message)||r.status;
+      box.textContent='ผิดพลาด: '+m+(r.status===403?' (โควต้าวันนี้อาจหมด หรือยังไม่ได้เปิด YouTube Data API v3)':'');
+      return;
+    }
+    if(!j.items||!j.items.length){box.textContent='ไม่พบผลลัพธ์';return}
+    box.innerHTML='';
+    j.items.forEach(it=>{
+      const id=it.id.videoId,title=dec(it.snippet.title);
+      const row=document.createElement('div');row.className='row';
+      row.innerHTML='<img class="th" alt=""><div class="col"><span class="t"></span><span class="ch"></span></div><button class="x">＋</button>';
+      row.children[0].src=(it.snippet.thumbnails.default||{}).url||'';
+      row.querySelector('.t').textContent=title;
+      row.querySelector('.ch').textContent=dec(it.snippet.channelTitle||'');
+      row.children[1].onclick=()=>playNow(id,title);
+      row.children[2].onclick=async()=>{const ok=await addVideo(id,title);if(idx<0&&list.length){idx=0;save();loadCur(false)}say(ok?'เพิ่มแล้ว':'มีเพลงนี้อยู่แล้ว')};
+      box.appendChild(row);
+    });
+  }catch(e){box.textContent='เชื่อมต่อไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่'}
+}
+$('bSearch').onclick=doSearch;
+$('q').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
+paintKey();
+
+// ---- Visualizer (decorative) ----
+const cv=$('viz'),cx=cv.getContext('2d');
+for(let i=0;i<bars;i++)vizLevel.push(0);
+let ph=0;
+function draw(){
+  ph+=0.08;const W=cv.width,H=cv.height,bw=W/bars;
+  cx.clearRect(0,0,W,H);
+  for(let i=0;i<bars;i++){
+    const target=playing?(0.25+0.35*Math.abs(Math.sin(ph*1.3+i*0.5))+0.4*Math.random())*(1-i/bars*0.55):0;
+    vizLevel[i]+=(target-vizLevel[i])*(target>vizLevel[i]?0.5:0.12);
+    const h=Math.max(3,vizLevel[i]*H);
+    const g=cx.createLinearGradient(0,H,0,H-h);g.addColorStop(0,'#00f0ff');g.addColorStop(0.6,'#b6ff3b');g.addColorStop(1,'#ff2bd6');
+    cx.fillStyle=g;cx.fillRect(i*bw+1,H-h,bw-2,h);
+  }
+  requestAnimationFrame(draw);
+}
+draw();
+
+// ---- Lock-screen controls ----
+function mediaSession(){
+  if(!('mediaSession' in navigator)||!list[idx])return;
+  try{
+    navigator.mediaSession.metadata=new MediaMetadata({title:list[idx].title,artist:'AnwaPlay',artwork:[{src:'https://i.ytimg.com/vi/'+list[idx].id+'/hqdefault.jpg',sizes:'480x360',type:'image/jpeg'}]});
+    navigator.mediaSession.setActionHandler('play',()=>player.playVideo());
+    navigator.mediaSession.setActionHandler('pause',()=>player.pauseVideo());
+    navigator.mediaSession.setActionHandler('nexttrack',()=>next(false));
+    navigator.mediaSession.setActionHandler('previoustrack',prev);
+  }catch(e){}
+}
+
+paintBtn();render();setTitle();
+</script>
+</body>
+</html>
